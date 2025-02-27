@@ -1,38 +1,55 @@
 import pygame
 import requests
 
+
 pygame.init()
 
-screen = pygame.display.set_mode((600, 400))
 
+screen = pygame.display.set_mode((600, 400))
 api_server = "https://static-maps.yandex.ru/v1"
+
 
 lon = "37.677751"
 lat = "55.757718"
-delta1 = "0.016457"
-delta2 = "0.00619"
+delta = 0.016457
+delta1 = 0.001
+delta2 = 0.5
 apikey = "f3a0fe3a-b07e-4840-a1da-06f18b2ddf13"
 
-params = {
-    "ll": ",".join([lon, lat]),
-    "spn": ",".join([delta1, delta2]),
-    "apikey": apikey,
-}
-response = requests.get(api_server, params=params)
 
-if response.status_code == 200:
-    with open("map.png", "wb") as file:
-        file.write(response.content)
+def load_map():
+    params = {
+        "ll": ",".join([lon, lat]),
+        "spn": ",".join([str(delta), str(delta)]),
+        "apikey": apikey,
+    }
+    response = requests.get(api_server, params=params)
+    if response.status_code == 200:
+        with open("map.png", "wb") as file:
+            file.write(response.content)
+        return pygame.image.load("map.png")
+    else:
+        print("Ошибка загрузки карты")
+        return None
 
-map_image = pygame.image.load("map.png")
+
+map_image = load_map()
+
 
 running = True
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_PAGEUP:
+                delta = min(delta * 1.5, delta1)
+                map_image = load_map()
+            if event.key == pygame.K_PAGEDOWN:
+                delta = max(delta / 1.5, delta2)
+                map_image = load_map()
     screen.blit(map_image, (0, 0))
     pygame.display.flip()
+
 
 pygame.quit()

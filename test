@@ -12,22 +12,28 @@ delta = 0.016457
 delta1 = 0.001
 delta2 = 0.5
 move_step = 0.01
+theme = "map"  # Начальная тема
 
 def load_map():
     params = {
         "ll": f"{lon},{lat}",
         "spn": f"{delta},{delta}",
         "size": "600,400",
-        "l": "map"
+        "l": theme
     }
     response = requests.get(api_server, params=params)
     if response.status_code == 200:
         with open("map.png", "wb") as file:
             file.write(response.content)
         return pygame.image.load("map.png")
-
+    else:
+        print("Ошибка загрузки карты")
+        return None
 
 map_image = load_map()
+if map_image is None:
+    pygame.quit()
+    exit()
 
 running = True
 while running:
@@ -61,8 +67,12 @@ while running:
                 if lon > 180:
                     lon = 180
                 map_image = load_map()
+            if event.key == pygame.K_t:  # Переключение темы
+                theme = "dark"
+                map_image = load_map()
 
-    screen.blit(map_image, (0, 0))
+    if map_image is not None:  # Проверка, что карта загружена
+        screen.blit(map_image, (0, 0))
     pygame.display.flip()
 
 pygame.quit()

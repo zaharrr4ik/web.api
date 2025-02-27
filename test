@@ -1,4 +1,3 @@
-```python
 import pygame
 import requests
 
@@ -28,8 +27,15 @@ def load_map():
         with open("map.png", "wb") as file:
             file.write(response.content)
         return pygame.image.load("map.png")
+    else:
+        print("Ошибка загрузки карты")
+        return None
 
 map_image = load_map()
+if map_image is None:
+    print("Не удалось загрузить карту. Проверьте параметры.")
+    pygame.quit()
+    exit()
 
 running = True
 while running:
@@ -67,8 +73,8 @@ while running:
                 theme = "skl" if theme == "map" else "map"
                 map_image = load_map()
 
-    screen.blit(map_image, (0, 0))
+    if map_image is not None:
+        screen.blit(map_image, (0, 0))
     pygame.display.flip()
 
 pygame.quit()
-```

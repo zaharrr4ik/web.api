@@ -13,20 +13,19 @@ delta1 = 0.001
 delta2 = 0.5
 move_step = 0.01
 apikey = "f3a0fe3a-b07e-4840-a1da-06f18b2ddf13"
-
-
+theme = "light"
 def load_map():
     params = {
         "ll": f"{lon},{lat}",
         "spn": f"{delta},{delta}",
         "apikey": apikey,
+        "theme": theme,
     }
     response = requests.get(api_server, params=params)
     if response.status_code == 200:
         with open("map.png", "wb") as file:
             file.write(response.content)
         return pygame.image.load("map.png")
-
 
 map_image = load_map()
 
@@ -61,6 +60,9 @@ while running:
                 lon += move_step
                 if lon > 180:
                     lon = 180
+                map_image = load_map()
+            if event.key == pygame.K_t:
+                theme = "dark" if theme == "light" else "light"
                 map_image = load_map()
 
     screen.blit(map_image, (0, 0))

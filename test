@@ -4,7 +4,7 @@ import requests
 pygame.init()
 
 screen = pygame.display.set_mode((600, 400))
-api_server = "https://static-maps.yandex.ru/1.x"  # Исправленный URL API
+api_server = "https://static-maps.yandex.ru/v1"
 
 lon = 37.677751
 lat = 55.757718
@@ -12,34 +12,29 @@ delta = 0.016457
 delta1 = 0.001
 delta2 = 0.5
 move_step = 0.01
-apikey = "ваш_api_ключ"  # Замените на ваш действительный API-ключ
-theme = "map"  # Начальная тема: схема местности
+theme = "map"  # Начальная тема
+apikey = "f3a0fe3a-b07e-4840-a1da-06f18b2ddf13"
+
 
 def load_map():
     params = {
         "ll": f"{lon},{lat}",
         "spn": f"{delta},{delta}",
-        "l": theme,
         "apikey": apikey,
+        "l": theme,
     }
-    try:
-        response = requests.get(api_server, params=params)
-        print("Запрос отправлен:", response.url)  # Отладочная информация
-        if response.status_code == 200:
-            with open("map.png", "wb") as file:
-                file.write(response.content)
-            return pygame.image.load("map.png")
-        else:
-            print(f"Ошибка загрузки карты: {response.status_code}")
-            print(response.text)  # Вывод текста ошибки от API
-            return None
-    except Exception as e:
-        print(f"Ошибка при выполнении запроса: {e}")
+    response = requests.get(api_server, params=params)
+    if response.status_code == 200:
+        with open("map.png", "wb") as file:
+            file.write(response.content)
+        return pygame.image.load("map.png")
+    else:
+        print("Ошибка загрузки карты")
         return None
+
 
 map_image = load_map()
 if map_image is None:
-    print("Не удалось загрузить карту. Проверьте параметры и подключение к интернету.")
     pygame.quit()
     exit()
 
@@ -75,12 +70,11 @@ while running:
                 if lon > 180:
                     lon = 180
                 map_image = load_map()
-            if event.key == pygame.K_t:
-                # Переключаем между схемой и спутником
-                theme = "sat" if theme == "map" else "map"
+            if event.key == pygame.K_t:  # Переключение темы
+                theme = "dark"
                 map_image = load_map()
 
-    if map_image is not None:
+    if map_image is not None:  # Проверка, что карта загружена
         screen.blit(map_image, (0, 0))
     pygame.display.flip()
 

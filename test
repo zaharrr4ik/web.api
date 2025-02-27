@@ -13,14 +13,14 @@ delta1 = 0.001
 delta2 = 0.5
 move_step = 0.01
 apikey = "ваш_api_ключ"  # Замените на ваш действительный API-ключ
-theme = "map"
+theme = "map"  # Начальная тема: схема местности
 
 def load_map():
     params = {
         "ll": f"{lon},{lat}",
         "spn": f"{delta},{delta}",
         "l": theme,
-        "apikey": apikey,  # Исправлено на "apikey" (возможно, в API требуется именно так)
+        "apikey": apikey,
     }
     try:
         response = requests.get(api_server, params=params)
@@ -76,7 +76,8 @@ while running:
                     lon = 180
                 map_image = load_map()
             if event.key == pygame.K_t:
-                theme = "skl" if theme == "map" else "map"
+                # Переключаем между схемой и спутником
+                theme = "sat" if theme == "map" else "map"
                 map_image = load_map()
 
     if map_image is not None:

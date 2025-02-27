@@ -1,26 +1,24 @@
 import pygame
 import requests
 
-
 pygame.init()
-
 
 screen = pygame.display.set_mode((600, 400))
 api_server = "https://static-maps.yandex.ru/v1"
 
-
-lon = "37.677751"
-lat = "55.757718"
+lon = 37.677751
+lat = 55.757718
 delta = 0.016457
 delta1 = 0.001
 delta2 = 0.5
+move_step = 0.01
 apikey = "f3a0fe3a-b07e-4840-a1da-06f18b2ddf13"
 
 
 def load_map():
     params = {
-        "ll": ",".join([lon, lat]),
-        "spn": ",".join([str(delta), str(delta)]),
+        "ll": f"{lon},{lat}",
+        "spn": f"{delta},{delta}",
         "apikey": apikey,
     }
     response = requests.get(api_server, params=params)
@@ -28,13 +26,9 @@ def load_map():
         with open("map.png", "wb") as file:
             file.write(response.content)
         return pygame.image.load("map.png")
-    else:
-        print("Ошибка загрузки карты")
-        return None
 
 
 map_image = load_map()
-
 
 running = True
 while running:
@@ -43,13 +37,33 @@ while running:
             running = False
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_PAGEUP:
-                delta = min(delta * 1.5, delta1)
+                delta = min(delta * 1.5, delta2)
                 map_image = load_map()
             if event.key == pygame.K_PAGEDOWN:
-                delta = max(delta / 1.5, delta2)
+                delta = max(delta / 1.5, delta1)
                 map_image = load_map()
+            if event.key == pygame.K_UP:
+                lat += move_step
+                if lat > 85:
+                    lat = 85
+                map_image = load_map()
+            if event.key == pygame.K_DOWN:
+                lat -= move_step
+                if lat < -85:
+                    lat = -85
+                map_image = load_map()
+            if event.key == pygame.K_LEFT:
+                lon -= move_step
+                if lon < -180:
+                    lon = -180
+                map_image = load_map()
+            if event.key == pygame.K_RIGHT:
+                lon += move_step
+                if lon > 180:
+                    lon = 180
+                map_image = load_map()
+
     screen.blit(map_image, (0, 0))
     pygame.display.flip()
-
 
 pygame.quit()

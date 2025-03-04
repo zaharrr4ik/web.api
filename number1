@@ -14,6 +14,8 @@ delta2 = 0.5
 move_step = 0.01
 apikey = "f3a0fe3a-b07e-4840-a1da-06f18b2ddf13"
 theme = "light"
+
+
 def load_map():
     params = {
         "ll": f"{lon},{lat}",
@@ -27,7 +29,29 @@ def load_map():
             file.write(response.content)
         return pygame.image.load("map.png")
 
+
 map_image = load_map()
+
+
+def draw_button():
+    font = pygame.font.Font(None, 24)  
+    if theme == "light":
+        button_text = "Темная тема"
+        button_color = (0, 0, 0)
+        text_color = (255, 255, 255)
+    else:
+        button_text = "Светлая тема"
+        button_color = (255, 255, 255)
+        text_color = (0, 0, 0)
+
+    text = font.render(button_text, True, text_color)
+    button_width = text.get_width() + 10 
+    button_height = text.get_height() + 5 
+    button_rect = pygame.Rect(10, 10, button_width, button_height)
+    pygame.draw.rect(screen, button_color, button_rect)
+    screen.blit(text, (button_rect.x + 5, button_rect.y + 2))  
+    return button_rect
+
 
 running = True
 while running:
@@ -61,11 +85,14 @@ while running:
                 if lon > 180:
                     lon = 180
                 map_image = load_map()
-            if event.key == pygame.K_t:
-                theme = "dark" if theme == "light" else "light"
-                map_image = load_map()
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                if button_rect.collidepoint(event.pos):
+                    theme = "dark" if theme == "light" else "light"
+                    map_image = load_map()
 
     screen.blit(map_image, (0, 0))
+    button_rect = draw_button()
     pygame.display.flip()
 
 pygame.quit()

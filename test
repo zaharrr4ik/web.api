@@ -5,6 +5,7 @@ pygame.init()
 
 screen = pygame.display.set_mode((600, 400))
 api_server = "https://static-maps.yandex.ru/v1"
+geocode_server = "https://geocode-maps.yandex.ru/1.x/"
 
 lon = 37.677751
 lat = 55.757718
@@ -12,8 +13,15 @@ delta = 0.016457
 delta1 = 0.001
 delta2 = 0.5
 move_step = 0.01
-theme = "map"  # Начальная тема
 apikey = "f3a0fe3a-b07e-4840-a1da-06f18b2ddf13"
+theme = "light"
+
+# Переменные для текстового поля и кнопки поиска
+input_box = pygame.Rect(10, 360, 400, 32)  # Перемещено вниз и расширено
+search_text = ''
+active = False
+font = pygame.font.Font(None, 32)
+button_font = pygame.font.Font(None, 24)
 
 
 def load_map():
@@ -21,61 +29,145 @@ def load_map():
         "ll": f"{lon},{lat}",
         "spn": f"{delta},{delta}",
         "apikey": apikey,
-        "l": theme,
+        "theme": theme,
+        "pt": f"{lon},{lat},pm2rdm"  # Красная метка
     }
     response = requests.get(api_server, params=params)
     if response.status_code == 200:
         with open("map.png", "wb") as file:
             file.write(response.content)
         return pygame.image.load("map.png")
+    return None
+
+
+def search_location(query):
+    global lon, lat
+    params = {
+        "geocode": query,
+        "apikey": apikey,
+        "format": "json"
+    }
+    response = requests.get(geocode_server, params=params)
+    if response.status_code == 200:
+        data = response.json()
+        try:
+            # Получаем координаты и название найденного объекта
+            point = data["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["Point"]["pos"]
+            name = data["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["name"]
+            print(f"Найден объект: {name}")  # Выводим название в консоль для отладки
+            lon_new, lat_new = map(float, point.split())
+            lon, lat = lon_new, lat_new
+            return load_map()
+        except (IndexError, KeyError):
+            print("Объект не найден")  # Сообщение об ошибке
+            return None
+    return None
+
+
+def draw_theme_button():
+    if theme == "light":
+        button_text = "Темная тема"
+        button_color = (0, 0, 0)
+        text_color = (255, 255, 255)
     else:
-        print("Ошибка загрузки карты")
-        return None
+        button_text = "Светлая тема"
+        button_color = (255, 255, 255)
+        text_color = (0, 0, 0)
+
+    text = button_font.render(button_text, True, text_color)
+    button_width = text.get_width() + 10
+    button_height = text.get_height() + 5
+    button_rect = pygame.Rect(10, 10, button_width, button_height)
+    pygame.draw.rect(screen, button_color, button_rect)
+    screen.blit(text, (button_rect.x + 5, button_rect.y + 2))
+    return button_rect
+
+
+def draw_search_button():
+    button_text = "Искать"
+    button_color = (50, 50, 50)  # Темно-серый цвет
+    text_color = (255, 255, 255)
+
+    text = button_font.render(button_text, True, text_color)
+    button_width = text.get_width() + 10
+    button_height = text.get_height() + 5
+    button_rect = pygame.Rect(420, 360, button_width, button_height)  # Справа от текстового поля
+    pygame.draw.rect(screen, button_color, button_rect)
+    screen.blit(text, (button_rect.x + 5, button_rect.y + 2))
+    return button_rect
 
 
 map_image = load_map()
-if map_image is None:
-    pygame.quit()
-    exit()
 
 running = True
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_PAGEUP:
-                delta = min(delta * 1.5, delta2)
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            theme_button_rect = draw_theme_button()
+            search_button_rect = draw_search_button()
+            if input_box.collidepoint(event.pos):
+                active = True
+            elif theme_button_rect.collidepoint(event.pos):
+                theme = "dark" if theme == "light" else "light"
                 map_image = load_map()
-            if event.key == pygame.K_PAGEDOWN:
-                delta = max(delta / 1.5, delta1)
-                map_image = load_map()
-            if event.key == pygame.K_UP:
-                lat += move_step
-                if lat > 85:
-                    lat = 85
-                map_image = load_map()
-            if event.key == pygame.K_DOWN:
-                lat -= move_step
-                if lat < -85:
-                    lat = -85
-                map_image = load_map()
-            if event.key == pygame.K_LEFT:
-                lon -= move_step
-                if lon < -180:
-                    lon = -180
-                map_image = load_map()
-            if event.key == pygame.K_RIGHT:
-                lon += move_step
-                if lon > 180:
-                    lon = 180
-                map_image = load_map()
-            if event.key == pygame.K_t:  # Переключение темы
-                theme = "dark"
-                map_image = load_map()
+            elif search_button_rect.collidepoint(event.pos):
+                if search_text:
+                    new_map = search_location(search_text)
+                    if new_map:
+                        map_image = new_map
+                    search_text = ''
+            else:
+                active = False
+        elif event.type == pygame.KEYDOWN:
+            if active:
+                if event.key == pygame.K_RETURN:  # Поиск по Enter сохраняется
+                    if search_text:
+                        new_map = search_location(search_text)
+                        if new_map:
+                            map_image = new_map
+                        search_text = ''
+                elif event.key == pygame.K_BACKSPACE:
+                    search_text = search_text[:-1]
+                else:
+                    search_text += event.unicode
+            else:
+                if event.key == pygame.K_PAGEUP:
+                    delta = min(delta * 1.5, delta2)
+                    map_image = load_map()
+                elif event.key == pygame.K_PAGEDOWN:
+                    delta = max(delta / 1.5, delta1)
+                    map_image = load_map()
+                elif event.key == pygame.K_UP:
+                    lat += move_step
+                    if lat > 85: lat = 85
+                    map_image = load_map()
+                elif event.key == pygame.K_DOWN:
+                    lat -= move_step
+                    if lat < -85: lat = -85
+                    map_image = load_map()
+                elif event.key == pygame.K_LEFT:
+                    lon -= move_step
+                    if lon < -180: lon = -180
+                    map_image = load_map()
+                elif event.key == pygame.K_RIGHT:
+                    lon += move_step
+                    if lon > 180: lon = 180
+                    map_image = load_map()
 
-    if map_image is not None:  # Проверка, что карта загружена
-        screen.blit(map_image, (0, 0))
+    screen.blit(map_image, (0, 0))
+    theme_button_rect = draw_theme_button()
+    search_button_rect = draw_search_button()
+
+    # Отрисовка текстового поля
+    text_color = (255, 255, 255) if theme == "dark" else (50, 50, 50)  # Цвет текста зависит от темы
+    txt_surface = font.render(search_text, True, text_color)
+    width = max(400, txt_surface.get_width() + 10)
+    input_box.w = width
+    pygame.draw.rect(screen, (70, 70, 70) if active else (100, 100, 100), input_box, 2)  # Более темная рамка
+    screen.blit(txt_surface, (input_box.x + 5, input_box.y + 5))
+
     pygame.display.flip()
 
 pygame.quit()
